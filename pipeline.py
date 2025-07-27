@@ -12,7 +12,7 @@ from assimp_converter import get_texture_paths, ModelConverter
 from z_offset_utils import calculate_z_offset, apply_z_offset_to_obj
 
 
-class Converter:
+class Pipeline:
     def __init__(self, converter: ModelConverter):
         self.converter = converter
 

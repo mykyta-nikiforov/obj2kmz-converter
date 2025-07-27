@@ -3,7 +3,7 @@ import sys
 import argparse
 import logging
 
-from converter import Converter
+from pipeline import Pipeline
 from assimp_converter import AssimpModelConverter
 from errors import ConverterScriptError
 
@@ -66,8 +66,8 @@ Examples:
 
     try:
         model_converter = AssimpModelConverter()
-        converter = Converter(model_converter)
-        converter.convert_model(
+        pipeline = Pipeline(model_converter)
+        pipeline.convert_model(
             obj_file=args.obj_file,
             georef_file=args.georef_file,
             output_kmz=args.output_kmz,
