@@ -19,13 +19,13 @@
       <Location>
         <longitude>{longitude}</longitude>
         <latitude>{latitude}</latitude>
-        <altitude>{altitude}</altitude>
+        <altitude>0</altitude>
       </Location>
 
       <Orientation>
-        <heading>180</heading>
-        <tilt>-90</tilt>
-        <roll>0</roll>
+        <heading>{heading}</heading>
+        <tilt>{tilt}</tilt>
+        <roll>{roll}</roll>
       </Orientation>
 
       <Link>

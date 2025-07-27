@@ -7,7 +7,8 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
-def create_kml_content(dae_filename: str, longitude: float, latitude: float, altitude: float = 0) -> str:
+def create_kml_content(dae_filename: str, longitude: float, latitude: float, 
+                    heading: float, tilt: float, roll: float) -> str:
     template_path = Path(__file__).parent / "kml_template.xml"
 
     try:
@@ -17,8 +18,10 @@ def create_kml_content(dae_filename: str, longitude: float, latitude: float, alt
         kml_content = template_content.format(
             longitude=longitude,
             latitude=latitude,
-            altitude=altitude,
-            dae_filename=dae_filename
+            dae_filename=dae_filename,
+            heading=heading,
+            tilt=tilt,
+            roll=roll
         )
 
         return kml_content

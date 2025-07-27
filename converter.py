@@ -20,7 +20,10 @@ class Converter:
                       georef_file: str,
                       output_kmz: str,
                       z_offset: Optional[float] = None,
-                      no_textures: bool = False) -> None:
+                      no_textures: bool = False,
+                      heading: float = 180,
+                      tilt: float = -90,
+                      roll: float = 0) -> None:
         logger.info("Starting OBJ to KMZ conversion...")
 
         self._validate_inputs(obj_file, georef_file)
@@ -50,7 +53,7 @@ class Converter:
                 texture_files = get_texture_paths(obj_file)
 
             logger.info("Creating KMZ package...")
-            kml_file_path = create_kml_content(dae_filename, longitude, latitude)
+            kml_file_path = create_kml_content(dae_filename, longitude, latitude, heading, tilt, roll)
             create_kmz(kml_file_path, dae_path, texture_files, output_kmz)
 
         logger.info(f"Conversion completed successfully! Output: {output_kmz}")
