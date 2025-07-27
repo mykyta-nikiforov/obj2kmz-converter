@@ -20,7 +20,6 @@ class Pipeline:
     def convert_model(self, obj_file: str,
                       georef_file: str,
                       output_kmz: str,
-                      z_offset: Optional[float] = None,
                       no_textures: bool = False,
                       heading: float = 180,
                       tilt: float = -90,
@@ -36,8 +35,7 @@ class Pipeline:
         logger.info(
             f"UTM: {easting}, {northing} (Zone {utm_zone}{hemisphere.code}) | WGS84: {longitude:.6f}, {latitude:.6f}")
 
-        if z_offset is None:
-            z_offset = calculate_z_offset(obj_file)
+        z_offset = calculate_z_offset(obj_file)
 
         with tempfile.TemporaryDirectory() as temp_dir, \
              self._aligned_obj_file(obj_file, z_offset) as obj_file_to_convert:
