@@ -3,6 +3,7 @@ import logging
 import os
 import tempfile
 from typing import Optional
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +39,8 @@ class Pipeline:
         if z_offset is None:
             z_offset = calculate_z_offset(obj_file)
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            obj_file_to_convert = obj_file
-
-            if z_offset != 0:
-                obj_file_to_convert = self._apply_z_offset(obj_file, z_offset)
+        with tempfile.TemporaryDirectory() as temp_dir, \
+             self._aligned_obj_file(obj_file, z_offset) as obj_file_to_convert:
 
             logger.info("Converting OBJ to DAE format...")
             dae_path = self.converter.convert_obj_to_dae(obj_file_to_convert, temp_dir)
@@ -69,12 +67,22 @@ class Pipeline:
         if output_dir and not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-    def _apply_z_offset(self, obj_file: str, z_offset: float) -> str:
+    @contextmanager
+    def _aligned_obj_file(self, obj_file: str, z_offset: float):
+        """Context manager that creates and cleans up aligned OBJ file."""
+        if z_offset == 0:
+            yield obj_file
+            return
+
         obj_dir = os.path.dirname(obj_file)
         obj_name = os.path.splitext(os.path.basename(obj_file))[0]
-        offset_obj_path = os.path.join(obj_dir, f"{obj_name}_aligned.obj")
+        aligned_obj_path = os.path.join(obj_dir, f"{obj_name}_aligned.obj")
 
-        logger.info(f"Applying ground plane alignment offset of {z_offset:.3f}...")
-        apply_z_offset_to_obj(obj_file, offset_obj_path, z_offset)
-
-        return offset_obj_path
+        try:
+            logger.info(f"Applying ground plane alignment offset of {z_offset:.3f}...")
+            apply_z_offset_to_obj(obj_file, aligned_obj_path, z_offset)
+            yield aligned_obj_path
+        finally:
+            if os.path.exists(aligned_obj_path):
+                logger.debug(f"Cleaning up temporary file: {aligned_obj_path}")
+                os.remove(aligned_obj_path)
