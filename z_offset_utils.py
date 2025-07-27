@@ -4,14 +4,16 @@ Utilities for analyzing and manipulating Z-coordinates in 3D models.
 """
 
 import logging
-import numpy as np
 from typing import List
+
+import numpy as np
+import pyransac3d as pyrsc
+
 from errors import FileProcessingError
 
 logger = logging.getLogger(__name__)
 
 VERTEX_PREFIX = 'v '
-GROUND_LEVEL_PERCENTILE = 30
 
 
 def _extract_z_coordinate_from_vertex_line(line: str) -> float:
@@ -45,31 +47,71 @@ def _extract_all_z_coordinates_from_obj(obj_path: str) -> List[float]:
     return z_values
 
 
-def calculate_z_offset(obj_path: str) -> float:
+def _extract_all_vertices_from_obj(obj_path: str) -> np.ndarray:
     """
-    Calculate optimal Z offset for dominant ground plane alignment.
-    
-    Uses the GROUND_LEVEL_PERCENTILE of Z coordinates to identify the dominant ground plane.
-    This percentile approach filters out outlier vertices (like underground
-    features or floating debris) while preserving the main ground plane,
-    ensuring the model aligns properly with the dominant ground plane.
+    Extract all vertex coordinates from OBJ file as numpy array.
     
     Args:
         obj_path: Path to the OBJ file
         
     Returns:
-        float: Optimal Z offset for ground plane alignment
+        np.ndarray: Array of shape (N, 3) containing vertex coordinates
     """
-    logger.info("Analyzing model geometry for dominant ground plane detection...")
+    vertices = []
 
-    z_values = _extract_all_z_coordinates_from_obj(obj_path)
-    z_array = np.array(z_values)
+    with open(obj_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith(VERTEX_PREFIX):
+                parts = line.split()
+                if len(parts) >= 4:
+                    x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+                    vertices.append([x, y, z])
 
-    optimal_offset = float(np.percentile(z_array, GROUND_LEVEL_PERCENTILE))
+    if not vertices:
+        raise ValueError("No valid vertices found in OBJ file")
 
-    logger.info(
-        f"Ground plane analysis complete: {len(z_array):,} vertices, Z-range: {float(z_array.min()):.3f} to {float(z_array.max()):.3f}, ground plane offset: {optimal_offset:.3f}, model height: {float(z_array.max()) - optimal_offset:.3f} units")
+    return np.array(vertices)
 
+
+def _calculate_offset(vertices: np.ndarray, threshold: float, max_iterations: int) -> float:
+    plane = pyrsc.Plane()
+    plane_eq, inliers = plane.fit(vertices, threshold, maxIteration=max_iterations)
+
+    # Calculate Z offset from plane equation
+    A, B, C, D = plane_eq
+
+    # Calculate the Z offset (distance from origin to plane along Z-axis)
+    # For a horizontal plane (A=0, B=0, C=1), this would be -D
+    # For general planes, find the Z-coordinate at (0,0,z) that satisfies the plane equation
+    if abs(C) > 1e-6:  # Avoid division by zero
+        optimal_offset = -D / C
+    else:
+        # If plane is vertical, use the mean Z of inlier points
+        optimal_offset = float(np.mean(vertices[inliers, 2]))
+        logger.warning("Plane is nearly vertical, using mean Z of inlier points")
+
+    return optimal_offset
+
+
+def calculate_z_offset(obj_path: str, threshold: float = 0.1, max_iterations: int = 1000) -> float:
+    """
+    Calculate optimal Z offset using RANSAC plane fitting.
+    
+    Args:
+        obj_path: Path to the OBJ file
+        threshold: Distance threshold for inlier points (default: 0.1)
+        max_iterations: Maximum RANSAC iterations (default: 1000)
+        
+    Returns:
+        float: optimal_offset
+    """
+    logger.info("Analyzing model geometry using RANSAC plane fitting...")
+
+    vertices = _extract_all_vertices_from_obj(obj_path)
+    optimal_offset = _calculate_offset(vertices, threshold, max_iterations)
+
+    logger.info(f"RANSAC plane fitting complete. Ground plane offset: {optimal_offset:.3f}")
     return optimal_offset
 
 
@@ -94,7 +136,7 @@ def _process_obj_line_with_z_offset(line: str, z_offset: float) -> str:
     if line.startswith(VERTEX_PREFIX):
         parts = line.split()
         return _apply_z_offset_to_vertex_line(parts, z_offset)
-    else: 
+    else:
         return original_line
 
 
