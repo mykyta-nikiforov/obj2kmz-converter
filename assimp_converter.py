@@ -16,10 +16,6 @@ class ModelConverter:
 
 
 class AssimpModelConverter(ModelConverter):
-    """
-    Assimp-based OBJ to DAE model converter.
-    """
-
     def convert_obj_to_dae(self, obj_path: str, output_dir: str) -> str:
         """
         Convert an OBJ file to DAE format using assimp.

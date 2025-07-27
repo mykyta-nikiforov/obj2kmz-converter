@@ -11,7 +11,21 @@ DIFFUSE_MAP_KEY = 'map_Kd'
 class ObjParser:
 
     @staticmethod
-    def find_mtl_file(obj_path: Path) -> Optional[str]:
+    def get_texture_files(obj_path: Path) -> set[str]:
+        """
+        Get all texture files referenced by an OBJ file.
+        """
+        obj_dir = obj_path.parent
+        mtl_file = ObjParser._find_mtl_file(obj_path)
+
+        if mtl_file:
+            mtl_path = obj_dir / mtl_file
+            return ObjParser._extract_texture_refs(mtl_path)
+
+        return set()
+
+    @staticmethod
+    def _find_mtl_file(obj_path: Path) -> Optional[str]:
         """
         Find the material file reference in the OBJ file.
         """
@@ -22,7 +36,7 @@ class ObjParser:
         return None
 
     @staticmethod
-    def extract_texture_refs(mtl_path: Path) -> set[str]:
+    def _extract_texture_refs(mtl_path: Path) -> set[str]:
         """
         Extract texture file references from the material file.
         """
@@ -38,23 +52,3 @@ class ObjParser:
                     texture_refs.add(texture_file)
 
         return texture_refs
-
-    @staticmethod
-    def get_texture_files(obj_path: Path) -> set[str]:
-        """
-        Get all texture files referenced by an OBJ file.
-        
-        Args:
-            obj_path: Path to the OBJ file
-            
-        Returns:
-            set[str]: Set of texture file names
-        """
-        obj_dir = obj_path.parent
-        mtl_file = ObjParser.find_mtl_file(obj_path)
-
-        if mtl_file:
-            mtl_path = obj_dir / mtl_file
-            return ObjParser.extract_texture_refs(mtl_path)
-
-        return set()
