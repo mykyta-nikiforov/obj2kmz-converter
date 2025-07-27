@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml>
+  <Placemark>
+    <name>3D Model</name>
+    <description>3D terrain model converted from OBJ</description>
+
+    <LookAt>
+      <longitude>{longitude}</longitude>
+      <latitude>{latitude}</latitude>
+      <altitude>0</altitude>
+      <heading>0</heading>
+      <tilt>45</tilt>
+      <range>2000</range>
+    </LookAt>
+
+    <Model>
+      <altitudeMode>relativeToGround</altitudeMode>
+
+      <Location>
+        <longitude>{longitude}</longitude>
+        <latitude>{latitude}</latitude>
+        <altitude>{altitude}</altitude>
+      </Location>
+
+      <Orientation>
+        <heading>180</heading>
+        <tilt>-90</tilt>
+        <roll>0</roll>
+      </Orientation>
+
+      <Link>
+        <href>{dae_filename}</href>
+      </Link>
+    </Model>
+  </Placemark>
+</kml> 
