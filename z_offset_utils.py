@@ -14,16 +14,19 @@ from errors import FileProcessingError
 logger = logging.getLogger(__name__)
 
 VERTEX_PREFIX = 'v '
+EPSILON = 1e-6  # Small value for numerical comparisons
+DEFAULT_THRESHOLD = 0.1  # Default distance threshold for RANSAC inlier points
+DEFAULT_MAX_ITERATIONS = 1000  # Default maximum RANSAC iterations
 
 
-def calculate_z_offset(obj_path: str, threshold: float = 0.1, max_iterations: int = 1000) -> float:
+def calculate_z_offset(obj_path: str, threshold: float = DEFAULT_THRESHOLD, max_iterations: int = DEFAULT_MAX_ITERATIONS) -> float:
     """
     Calculate optimal Z offset using RANSAC plane fitting.
 
     Args:
         obj_path: Path to the OBJ file
-        threshold: Distance threshold for inlier points (default: 0.1)
-        max_iterations: Maximum RANSAC iterations (default: 1000)
+        threshold: Distance threshold for inlier points (default: DEFAULT_THRESHOLD)
+        max_iterations: Maximum RANSAC iterations (default: DEFAULT_MAX_ITERATIONS)
 
     Returns:
         float: optimal_offset
@@ -31,7 +34,7 @@ def calculate_z_offset(obj_path: str, threshold: float = 0.1, max_iterations: in
     logger.info("Analyzing model geometry using RANSAC plane fitting...")
 
     vertices = _extract_all_vertices_from_obj(obj_path)
-    optimal_offset = _calculate_offset(vertices, threshold, max_iterations)
+    optimal_offset = _calculate_z_offset(vertices, threshold, max_iterations)
 
     logger.info(f"RANSAC plane fitting complete. Ground plane offset: {optimal_offset:.3f}")
     return optimal_offset
@@ -90,17 +93,17 @@ def _extract_all_vertices_from_obj(obj_path: str) -> np.ndarray:
     return np.array(vertices)
 
 
-def _calculate_offset(vertices: np.ndarray, threshold: float, max_iterations: int) -> float:
+def _calculate_z_offset(vertices: np.ndarray, threshold: float, max_iterations: int) -> float:
+    # Calculate Z offset from plane equation
     plane = pyrsc.Plane()
     plane_eq, inliers = plane.fit(vertices, threshold, maxIteration=max_iterations)
 
-    # Calculate Z offset from plane equation
     A, B, C, D = plane_eq
 
-    # Calculate the Z offset (distance from origin to plane along Z-axis)
-    # For a horizontal plane (A=0, B=0, C=1), this would be -D
-    # For general planes, find the Z-coordinate at (0,0,z) that satisfies the plane equation
-    if abs(C) > 1e-6:  # Avoid division by zero
+    # Find the Z-coordinate where the plane intersects the Z-axis (at x=0, y=0)
+    # Plane equation: Ax + By + Cz + D = 0
+    # At (0,0,z): Cz + D = 0 → z = -D/C
+    if abs(C) > EPSILON:  # Avoid division by zero
         optimal_offset = -D / C
     else:
         # If plane is vertical, use the mean Z of inlier points
